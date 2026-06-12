@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Habit Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── SETUP MODAL (first run) ── -->
+  <div id="setup-overlay" class="overlay">
+    <div class="modal">
+      <h2>👋 Welcome to Habit Tracker</h2>
+      <p>Tell me which habits you want to track every day.</p>
+
+      <div id="habit-input-list">
+        <div class="habit-row">
+          <input class="emoji-input" type="text" placeholder="🏃" maxlength="2" />
+          <input class="name-input" type="text" placeholder="e.g. Morning workout" />
+          <button class="remove-row-btn" title="Remove">✕</button>
+        </div>
+      </div>
+
+      <button id="add-row-btn">＋ Add another habit</button>
+      <button id="save-setup-btn">Start Tracking →</button>
+      <p id="setup-error" class="error hidden">Please add at least one habit with a name.</p>
+    </div>
+  </div>
+
+  <!-- ── MAIN APP ── -->
+  <div id="app" class="hidden">
+
+    <header>
+      <div>
+        <h1>🎯 Habit Tracker</h1>
+        <p id="today-label"></p>
+      </div>
+      <button id="settings-btn" title="Manage habits">⚙ Habits</button>
+    </header>
+
+    <main>
+      <section id="progress-bar-section">
+        <div id="progress-bar-wrap">
+          <div id="progress-bar-fill"></div>
+        </div>
+        <p id="progress-label"></p>
+      </section>
+
+      <section id="habits-section">
+        <ul id="habits-list"></ul>
+      </section>
+
+      <section id="weekly-section">
+        <h3>Last 7 Days</h3>
+        <div id="weekly-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ── SETTINGS MODAL ── -->
+  <div id="settings-overlay" class="overlay hidden">
+    <div class="modal">
+      <h2>⚙ Manage Habits</h2>
+
+      <div id="settings-habit-list"></div>
+
+      <button id="settings-add-row-btn">＋ Add habit</button>
+      <div class="modal-footer">
+        <button id="settings-cancel-btn" class="secondary">Cancel</button>
+        <button id="settings-save-btn">Save Changes</button>
+      </div>
+      <p id="settings-error" class="error hidden">Each habit needs a name.</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

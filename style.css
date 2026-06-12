@@ -1,0 +1,267 @@
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2e3250;
+  --accent: #6c63ff;
+  --accent-hover: #7d75ff;
+  --green: #22c55e;
+  --red: #ef4444;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --radius: 12px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+header h1 { font-size: 1.4rem; font-weight: 700; }
+header p  { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+
+/* ── Main layout ── */
+main {
+  max-width: 660px;
+  margin: 0 auto;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+h3 { font-size: 0.95rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+
+/* ── Progress bar ── */
+#progress-bar-wrap {
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+#progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  transition: width .4s ease;
+}
+#progress-label {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* ── Habit list ── */
+#habits-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.habit-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  user-select: none;
+}
+.habit-item:hover { border-color: var(--accent); }
+.habit-item.done  { background: var(--surface2); border-color: var(--green); }
+
+.habit-emoji { font-size: 1.4rem; width: 30px; text-align: center; }
+
+.habit-info { flex: 1; }
+.habit-name { font-weight: 600; font-size: 0.97rem; }
+.habit-streak { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+.habit-check {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem;
+  transition: background .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.habit-item.done .habit-check {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+/* ── Weekly grid ── */
+#weekly-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.week-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.week-label {
+  width: 140px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.week-days { display: flex; gap: 5px; }
+.week-dot {
+  width: 22px; height: 22px;
+  border-radius: 5px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+.week-dot.done    { background: var(--green); border-color: var(--green); color: #fff; }
+.week-dot.missed  { background: var(--surface2); }
+.week-dot.today   { border-color: var(--accent); }
+
+/* ── Buttons ── */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  padding: 9px 18px;
+  transition: background .15s, opacity .15s;
+}
+button:active { opacity: .85; }
+
+#settings-btn {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+#settings-btn:hover { border-color: var(--accent); }
+
+#save-setup-btn, #settings-save-btn {
+  background: var(--accent);
+  color: #fff;
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px;
+  font-weight: 600;
+}
+#save-setup-btn:hover, #settings-save-btn:hover { background: var(--accent-hover); }
+
+#add-row-btn, #settings-add-row-btn {
+  background: transparent;
+  color: var(--accent);
+  border: 1px dashed var(--accent);
+  width: 100%;
+  margin-top: 8px;
+}
+#add-row-btn:hover, #settings-add-row-btn:hover { background: var(--surface2); }
+
+.secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  flex: 1;
+}
+
+/* ── Modals ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.overlay.hidden { display: none; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 28px 24px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal h2 { font-size: 1.2rem; margin-bottom: 6px; }
+.modal > p { color: var(--muted); font-size: 0.88rem; margin-bottom: 18px; }
+
+/* ── Habit input rows ── */
+.habit-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.emoji-input {
+  width: 50px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+.name-input { flex: 1; }
+input[type="text"] {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color .15s;
+}
+input[type="text"]:focus { border-color: var(--accent); }
+
+.remove-row-btn {
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+.remove-row-btn:hover { color: var(--red); }
+.remove-row-btn.hidden { visibility: hidden; }
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* ── Error ── */
+.error { color: var(--red); font-size: 0.82rem; margin-top: 8px; }
+.error.hidden { display: none; }
+
+/* ── App hidden ── */
+.hidden { display: none; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
