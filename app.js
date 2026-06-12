@@ -1,321 +1,444 @@
-// ── Storage helpers ──────────────────────────────────────────────────────────
+// ── Storage ─────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'habit-tracker-v1';
+const KEY_HABITS     = 'ht-habits-v2';
+const KEY_CATEGORIES = 'ht-categories-v2';
+const KEY_REMINDERS  = 'ht-reminders-v2';
+const KEY_THEME      = 'ht-theme-v2';
 
-function load() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-  } catch {
-    return {};
+function loadHabits()     { return JSON.parse(localStorage.getItem(KEY_HABITS))     || []; }
+function loadCategories() { return JSON.parse(localStorage.getItem(KEY_CATEGORIES)) || ['Health','Productivity','Learning']; }
+function loadReminders()  { return JSON.parse(localStorage.getItem(KEY_REMINDERS))  || []; }
+
+function saveHabits(h)     { localStorage.setItem(KEY_HABITS,     JSON.stringify(h)); }
+function saveCategories(c) { localStorage.setItem(KEY_CATEGORIES, JSON.stringify(c)); }
+function saveReminders(r)  { localStorage.setItem(KEY_REMINDERS,  JSON.stringify(r)); }
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+function isSunday() { return new Date().getDay() === 0; }
+
+// ── Progress reset logic ─────────────────────────────────────────────────────
+
+function resetProgressIfNeeded(habit) {
+  const today = todayStr();
+  if (!habit.lastReset) { habit.lastReset = today; return habit; }
+
+  if (habit.frequency === 'daily' && habit.lastReset !== today) {
+    if (habit.progress < 100) habit.streak = 0; // missed yesterday
+    habit.progress  = 0;
+    habit.lastReset = today;
   }
+
+  if (habit.frequency === 'weekly' && isSunday() && habit.lastReset !== today) {
+    if (habit.progress < 100) habit.streak = 0;
+    habit.progress  = 0;
+    habit.lastReset = today;
+  }
+
+  return habit;
 }
 
-function save(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+// ── Streak milestones ─────────────────────────────────────────────────────────
+
+const MILESTONES = [5, 10, 20, 50, 100];
+
+function milestoneLabel(streak) {
+  if (streak >= 100) return '🏆 100 days!';
+  if (streak >= 50)  return '💎 50 days!';
+  if (streak >= 20)  return '⭐ 20 days!';
+  if (streak >= 10)  return '🥈 10 days!';
+  if (streak >= 5)   return '🥉 5 days!';
+  return null;
 }
 
-function getState() {
-  const data = load();
-  return {
-    setupDone: data.setupDone || false,
-    habits:    data.habits    || [],
-    logs:      data.logs      || {},
-  };
+// ── Render helpers ────────────────────────────────────────────────────────────
+
+function getCategorySelectOptions(categories, selected) {
+  return categories.map(c =>
+    `<option value="${c}" ${c === selected ? 'selected' : ''}>${c}</option>`
+  ).join('');
 }
 
-function setState(patch) {
-  save({ ...load(), ...patch });
+function populateCategorySelects() {
+  const cats = loadCategories();
+  const opts  = getCategorySelectOptions(cats, '');
+
+  // Add habit form
+  const addCat = document.getElementById('habit-category');
+  const curAdd = addCat.value;
+  addCat.innerHTML = getCategorySelectOptions(cats, curAdd || cats[0]);
+
+  // Edit habit form
+  const editCat = document.getElementById('edit-habit-category');
+  editCat.innerHTML = getCategorySelectOptions(cats, editCat.value || cats[0]);
+
+  // Filter dropdown
+  const filter = document.getElementById('filter-category');
+  const curFilter = filter.value;
+  filter.innerHTML = `<option value="all">All Categories</option>` +
+    cats.map(c => `<option value="${c}" ${c === curFilter ? 'selected' : ''}>${c}</option>`).join('');
+
+  // Reminder habit select
+  const habits = loadHabits();
+  const reminderSel = document.getElementById('reminder-habit');
+  const curReminder = reminderSel.value;
+  reminderSel.innerHTML = `<option value="">-- Select a habit --</option>` +
+    habits.map(h => `<option value="${h.id}" ${h.id === curReminder ? 'selected' : ''}>${h.name}</option>`).join('');
 }
 
-// ── Date helpers ─────────────────────────────────────────────────────────────
-
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function dateStr(offsetDays) {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10);
-}
-
-function friendlyDate(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-  });
-}
-
-function uid() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-// ── Setup modal ──────────────────────────────────────────────────────────────
-
-function buildHabitRow(emoji, name, removable) {
-  const row = document.createElement('div');
-  row.className = 'habit-row';
-  row.innerHTML = `
-    <input class="emoji-input" type="text" placeholder="🏃" maxlength="2" value="${emoji}" />
-    <input class="name-input"  type="text" placeholder="e.g. Morning workout" value="${name}" />
-    <button class="remove-row-btn${removable ? '' : ' hidden'}" title="Remove">✕</button>
-  `;
-  row.querySelector('.remove-row-btn').addEventListener('click', () => {
-    row.remove();
-    updateRemoveButtons('#habit-input-list');
-  });
-  return row;
-}
-
-function updateRemoveButtons(containerSelector) {
-  const rows = document.querySelectorAll(`${containerSelector} .habit-row`);
-  rows.forEach((r, i) => {
-    const btn = r.querySelector('.remove-row-btn');
-    btn.classList.toggle('hidden', rows.length === 1 && i === 0);
-  });
-}
-
-function initSetupModal() {
-  const overlay = document.getElementById('setup-overlay');
-  const list    = document.getElementById('habit-input-list');
-  const addBtn  = document.getElementById('add-row-btn');
-  const saveBtn = document.getElementById('save-setup-btn');
-  const errEl   = document.getElementById('setup-error');
-
-  // Clear and seed one row
-  list.innerHTML = '';
-  list.appendChild(buildHabitRow('', '', false));
-
-  addBtn.addEventListener('click', () => {
-    list.appendChild(buildHabitRow('', '', true));
-    updateRemoveButtons('#habit-input-list');
-    list.lastElementChild.querySelector('.name-input').focus();
-  });
-
-  saveBtn.addEventListener('click', () => {
-    const rows   = list.querySelectorAll('.habit-row');
-    const habits = [];
-    let valid    = true;
-
-    rows.forEach(row => {
-      const name  = row.querySelector('.name-input').value.trim();
-      const emoji = row.querySelector('.emoji-input').value.trim() || '⬜';
-      if (name) habits.push({ id: uid(), name, emoji, createdAt: todayStr() });
-      else if (row.querySelector('.name-input').value.trim() === '' && rows.length > 1) {
-        // skip empty extra rows silently
-      } else if (name === '') {
-        valid = false;
-      }
-    });
-
-    if (!valid || habits.length === 0) {
-      errEl.classList.remove('hidden');
-      return;
-    }
-
-    errEl.classList.add('hidden');
-    setState({ setupDone: true, habits });
-    overlay.classList.add('hidden');
-    initApp();
-  });
-}
-
-// ── Main app ─────────────────────────────────────────────────────────────────
-
-function initApp() {
-  const app = document.getElementById('app');
-  app.classList.remove('hidden');
-
-  renderHeader();
-  renderHabits();
-  renderWeekly();
-}
-
-function renderHeader() {
-  document.getElementById('today-label').textContent = friendlyDate(todayStr());
-}
+// ── Render habits ─────────────────────────────────────────────────────────────
 
 function renderHabits() {
-  const { habits, logs } = getState();
-  const today            = todayStr();
-  const todayLog         = logs[today] || {};
-  const list             = document.getElementById('habits-list');
-  const doneCount        = habits.filter(h => todayLog[h.id]).length;
+  const habits      = loadHabits().map(resetProgressIfNeeded);
+  saveHabits(habits);
 
-  // Progress bar
-  const pct = habits.length ? Math.round((doneCount / habits.length) * 100) : 0;
-  document.getElementById('progress-bar-fill').style.width = pct + '%';
-  document.getElementById('progress-label').textContent =
-    `${doneCount} / ${habits.length} done today`;
+  const filterVal   = document.getElementById('filter-category').value;
+  const listEl      = document.getElementById('habit-list');
+  const noMsg       = document.getElementById('no-habits-msg');
 
-  list.innerHTML = '';
-  habits.forEach(habit => {
-    const done  = !!todayLog[habit.id];
-    const streak = calcStreak(habit.id, logs);
+  const filtered = filterVal === 'all' ? habits : habits.filter(h => h.category === filterVal);
 
-    const li = document.createElement('li');
-    li.className = 'habit-item' + (done ? ' done' : '');
-    li.innerHTML = `
-      <span class="habit-emoji">${habit.emoji}</span>
-      <div class="habit-info">
-        <div class="habit-name">${habit.name}</div>
-        <div class="habit-streak">${streak > 0 ? `🔥 ${streak}-day streak` : 'No streak yet'}</div>
+  if (filtered.length === 0) {
+    listEl.innerHTML = '';
+    noMsg.classList.remove('hidden');
+  } else {
+    noMsg.classList.add('hidden');
+    listEl.innerHTML = filtered.map(habitCard).join('');
+  }
+
+  updateOverview(habits);
+  updateAnalytics(habits);
+  populateCategorySelects();
+}
+
+function habitCard(h) {
+  const pct       = h.progress || 0;
+  const done      = pct >= 100;
+  const milestone = milestoneLabel(h.streak);
+
+  return `
+    <li class="habit-card ${done ? 'completed' : ''}" id="hc-${h.id}">
+      <div class="habit-card-header">
+        <div class="habit-card-info">
+          <div class="habit-card-name">${h.name}</div>
+          <div class="habit-card-meta">
+            <span class="badge badge-category">${h.category}</span>
+            <span class="badge badge-freq">${h.frequency}</span>
+            ${h.streak > 0 ? `<span class="badge badge-streak">🔥 ${h.streak} day streak</span>` : ''}
+            ${milestone    ? `<span class="badge badge-milestone">${milestone}</span>` : ''}
+          </div>
+        </div>
+        <div class="habit-card-actions">
+          ${!done ? `<button class="btn-sm btn-progress" onclick="markProgress('${h.id}')">+25%</button>` : ''}
+          <button class="btn-sm btn-edit"   onclick="openEdit('${h.id}')">Edit</button>
+          <button class="btn-sm btn-delete" onclick="deleteHabit('${h.id}')">Delete</button>
+        </div>
       </div>
-      <div class="habit-check">${done ? '✓' : ''}</div>
-    `;
-    li.addEventListener('click', () => toggleHabit(habit.id));
-    list.appendChild(li);
-  });
+      <div class="progress-label">${pct}% complete</div>
+      <div class="progress-wrap" onclick="markProgress('${h.id}')" title="Click to add 25% progress">
+        <div class="progress-fill" style="width:${pct}%"></div>
+      </div>
+    </li>`;
 }
 
-function toggleHabit(habitId) {
-  const state = getState();
+// ── Mark progress ─────────────────────────────────────────────────────────────
+
+function markProgress(id) {
+  const habits = loadHabits();
   const today  = todayStr();
+  const h      = habits.find(x => x.id === id);
+  if (!h || h.progress >= 100) return;
 
-  if (!state.logs[today]) state.logs[today] = {};
-  state.logs[today][habitId] = !state.logs[today][habitId];
+  h.progress = Math.min(100, (h.progress || 0) + 25);
 
-  setState({ logs: state.logs });
-  renderHabits();
-  renderWeekly();
-}
+  if (h.progress === 100) {
+    // Check streak continuation
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yd = yesterday.toISOString().slice(0, 10);
 
-function calcStreak(habitId, logs) {
-  let streak = 0;
-  let offset = 0;
-
-  // Don't count today towards streak until it's ticked
-  while (true) {
-    offset--;
-    const d = dateStr(offset);
-    if (logs[d] && logs[d][habitId]) {
-      streak++;
+    if (h.lastCompleted === yd || h.lastCompleted === today) {
+      h.streak = (h.streak || 0) + 1;
     } else {
-      break;
+      h.streak = 1;
+    }
+    h.lastCompleted = today;
+
+    // Alert milestones
+    if (MILESTONES.includes(h.streak)) {
+      setTimeout(() => alert(`🎉 ${h.name} — ${milestoneLabel(h.streak)}`), 100);
     }
   }
-  return streak;
+
+  saveHabits(habits);
+  renderHabits();
 }
 
-function renderWeekly() {
-  const { habits, logs } = getState();
-  const today            = todayStr();
-  const grid             = document.getElementById('weekly-grid');
-  const days             = Array.from({ length: 7 }, (_, i) => dateStr(i - 6)); // last 7 days incl. today
+// ── Add habit ─────────────────────────────────────────────────────────────────
 
-  grid.innerHTML = '';
-  habits.forEach(habit => {
-    const row = document.createElement('div');
-    row.className = 'week-row';
+document.getElementById('add-habit-btn').addEventListener('click', () => {
+  const name  = document.getElementById('habit-name').value.trim();
+  const cat   = document.getElementById('habit-category').value;
+  const freq  = document.getElementById('habit-frequency').value;
+  const errEl = document.getElementById('add-error');
 
-    const label = document.createElement('span');
-    label.className = 'week-label';
-    label.textContent = `${habit.emoji} ${habit.name}`;
+  if (!name) { errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
 
-    const daysWrap = document.createElement('div');
-    daysWrap.className = 'week-days';
+  const habits = loadHabits();
+  habits.push({ id: uid(), name, category: cat, frequency: freq,
+                progress: 0, streak: 0, lastCompleted: null,
+                lastReset: todayStr(), createdAt: todayStr() });
+  saveHabits(habits);
 
-    days.forEach(d => {
-      const dot = document.createElement('div');
-      const dayLogs = logs[d] || {};
-      const isToday = d === today;
-      const done    = !!dayLogs[habit.id];
+  document.getElementById('habit-name').value = '';
+  renderHabits();
+});
 
-      dot.className = 'week-dot' +
-        (done ? ' done' : ' missed') +
-        (isToday ? ' today' : '');
-      dot.title = friendlyDate(d) + (done ? ' ✓' : ' ✗');
-      dot.textContent = isToday ? '·' : '';
-      daysWrap.appendChild(dot);
+// ── Delete habit ──────────────────────────────────────────────────────────────
+
+function deleteHabit(id) {
+  const el = document.getElementById(`hc-${id}`);
+  if (el) {
+    el.classList.add('fade-out');
+    setTimeout(() => {
+      let habits = loadHabits().filter(h => h.id !== id);
+      saveHabits(habits);
+      // Cascade: remove reminders for this habit
+      let reminders = loadReminders().filter(r => r.habitId !== id);
+      saveReminders(reminders);
+      renderHabits();
+      renderReminders();
+    }, 400);
+  }
+}
+
+// ── Edit habit ────────────────────────────────────────────────────────────────
+
+let editingId = null;
+
+function openEdit(id) {
+  const h = loadHabits().find(x => x.id === id);
+  if (!h) return;
+  editingId = id;
+
+  document.getElementById('edit-habit-name').value = h.name;
+  document.getElementById('edit-habit-category').value = h.category;
+  document.getElementById('edit-habit-frequency').value = h.frequency;
+  document.getElementById('edit-habit-section').classList.remove('hidden');
+  document.getElementById('edit-habit-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('save-edit-btn').addEventListener('click', () => {
+  if (!editingId) return;
+  const name = document.getElementById('edit-habit-name').value.trim();
+  const cat  = document.getElementById('edit-habit-category').value;
+  const freq = document.getElementById('edit-habit-frequency').value;
+  if (!name) return;
+
+  const habits = loadHabits();
+  const h      = habits.find(x => x.id === editingId);
+  if (h) { h.name = name; h.category = cat; h.frequency = freq; }
+  saveHabits(habits);
+
+  editingId = null;
+  document.getElementById('edit-habit-section').classList.add('hidden');
+  renderHabits();
+});
+
+document.getElementById('cancel-edit-btn').addEventListener('click', () => {
+  editingId = null;
+  document.getElementById('edit-habit-section').classList.add('hidden');
+});
+
+// ── Filter ────────────────────────────────────────────────────────────────────
+
+document.getElementById('filter-category').addEventListener('change', renderHabits);
+
+// ── Categories ────────────────────────────────────────────────────────────────
+
+function renderCategories() {
+  const cats = loadCategories();
+  const el   = document.getElementById('category-list');
+  el.innerHTML = cats.map(c => `
+    <div class="category-chip">
+      ${c}
+      ${!['Health','Productivity','Learning'].includes(c)
+        ? `<button class="remove-cat" onclick="removeCategory('${c}')" title="Remove">✕</button>`
+        : ''}
+    </div>`).join('');
+}
+
+document.getElementById('add-category-btn').addEventListener('click', () => {
+  const input = document.getElementById('new-category-input');
+  const val   = input.value.trim();
+  if (!val) return;
+
+  const cats = loadCategories();
+  if (cats.map(c => c.toLowerCase()).includes(val.toLowerCase())) {
+    alert('That category already exists.'); return;
+  }
+  cats.push(val);
+  saveCategories(cats);
+  input.value = '';
+  renderCategories();
+  populateCategorySelects();
+});
+
+function removeCategory(cat) {
+  const cats = loadCategories().filter(c => c !== cat);
+  saveCategories(cats);
+  renderCategories();
+  populateCategorySelects();
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+
+function updateOverview(habits) {
+  document.getElementById('total-habits').textContent = habits.length;
+  document.getElementById('completed-habits').textContent = habits.filter(h => h.progress >= 100).length;
+  const longest = habits.reduce((max, h) => Math.max(max, h.streak || 0), 0);
+  document.getElementById('longest-streak').textContent = longest;
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+function updateAnalytics(habits) {
+  const cats  = loadCategories();
+  const done  = habits.filter(h => h.progress >= 100);
+
+  document.getElementById('health-completed').textContent =
+    done.filter(h => h.category === 'Health').length;
+  document.getElementById('productivity-completed').textContent =
+    done.filter(h => h.category === 'Productivity').length;
+  document.getElementById('learning-completed').textContent =
+    done.filter(h => h.category === 'Learning').length;
+
+  // Extra (custom) categories
+  const custom = cats.filter(c => !['Health','Productivity','Learning'].includes(c));
+  const extraEl = document.getElementById('extra-analytics');
+  if (custom.length === 0) { extraEl.innerHTML = ''; return; }
+
+  extraEl.innerHTML = custom.map(c => `
+    <div class="analytics-item">
+      <span class="analytics-label">${c}</span>
+      <span class="analytics-value">${done.filter(h => h.category === c).length}</span>
+      <span class="analytics-label">completed</span>
+    </div>`).join('');
+}
+
+// ── Reminders ─────────────────────────────────────────────────────────────────
+
+function renderReminders() {
+  const reminders = loadReminders();
+  const listEl    = document.getElementById('reminder-list');
+  if (reminders.length === 0) { listEl.innerHTML = ''; return; }
+
+  listEl.innerHTML = reminders.map(r => `
+    <li class="reminder-item">
+      <span><strong>${r.habitName}</strong> · ${r.time} · ${r.frequency}</span>
+      <button class="btn-sm btn-delete" onclick="deleteReminder('${r.id}')">Remove</button>
+    </li>`).join('');
+}
+
+function deleteReminder(id) {
+  saveReminders(loadReminders().filter(r => r.id !== id));
+  renderReminders();
+}
+
+document.getElementById('set-reminder-btn').addEventListener('click', () => {
+  const habitId = document.getElementById('reminder-habit').value;
+  const time    = document.getElementById('reminder-time').value;
+  const freq    = document.getElementById('reminder-frequency').value;
+  const permMsg = document.getElementById('reminder-permission-msg');
+
+  if (!habitId || !time) { alert('Please select a habit and set a time.'); return; }
+
+  const habits = loadHabits();
+  const habit  = habits.find(h => h.id === habitId);
+  if (!habit)  return;
+
+  if (!('Notification' in window)) {
+    permMsg.classList.remove('hidden'); return;
+  }
+
+  Notification.requestPermission().then(perm => {
+    if (perm !== 'granted') { permMsg.classList.remove('hidden'); return; }
+    permMsg.classList.add('hidden');
+
+    const reminder = { id: uid(), habitId, habitName: habit.name, time, frequency: freq };
+    const reminders = loadReminders();
+    reminders.push(reminder);
+    saveReminders(reminders);
+
+    scheduleReminder(reminder);
+    renderReminders();
+  });
+});
+
+function msUntil(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const now    = new Date();
+  const target = new Date();
+  target.setHours(h, m, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+  return target - now;
+}
+
+function scheduleReminder(r) {
+  const fire = () => {
+    new Notification(`⏰ Habit Reminder: ${r.habitName}`, {
+      body: `Time to work on: ${r.habitName}`,
+      icon: '🎯',
     });
-
-    row.appendChild(label);
-    row.appendChild(daysWrap);
-    grid.appendChild(row);
-  });
+    if (r.frequency === 'daily')  setTimeout(fire, 24 * 60 * 60 * 1000);
+    if (r.frequency === 'weekly') setTimeout(fire,  7 * 24 * 60 * 60 * 1000);
+  };
+  setTimeout(fire, msUntil(r.time));
 }
 
-// ── Settings modal ───────────────────────────────────────────────────────────
-
-function buildSettingsRow(habit) {
-  const row = document.createElement('div');
-  row.className = 'habit-row';
-  row.dataset.id = habit.id;
-  row.innerHTML = `
-    <input class="emoji-input" type="text" placeholder="🏃" maxlength="2" value="${habit.emoji}" />
-    <input class="name-input"  type="text" placeholder="Habit name" value="${habit.name}" />
-    <button class="remove-row-btn" title="Remove">✕</button>
-  `;
-  row.querySelector('.remove-row-btn').addEventListener('click', () => {
-    row.remove();
-    updateRemoveButtons('#settings-habit-list');
-  });
-  return row;
+function rescheduleAllReminders() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  loadReminders().forEach(scheduleReminder);
 }
 
-function initSettingsModal() {
-  const openBtn    = document.getElementById('settings-btn');
-  const overlay    = document.getElementById('settings-overlay');
-  const cancelBtn  = document.getElementById('settings-cancel-btn');
-  const saveBtn    = document.getElementById('settings-save-btn');
-  const addBtn     = document.getElementById('settings-add-row-btn');
-  const listEl     = document.getElementById('settings-habit-list');
-  const errEl      = document.getElementById('settings-error');
+// ── Theme ─────────────────────────────────────────────────────────────────────
 
-  openBtn.addEventListener('click', () => {
-    const { habits } = getState();
-    listEl.innerHTML = '';
-    habits.forEach(h => listEl.appendChild(buildSettingsRow(h)));
-    updateRemoveButtons('#settings-habit-list');
-    errEl.classList.add('hidden');
-    overlay.classList.remove('hidden');
-  });
-
-  cancelBtn.addEventListener('click', () => overlay.classList.add('hidden'));
-
-  addBtn.addEventListener('click', () => {
-    listEl.appendChild(buildSettingsRow({ id: uid(), emoji: '', name: '' }));
-    updateRemoveButtons('#settings-habit-list');
-    listEl.lastElementChild.querySelector('.name-input').focus();
-  });
-
-  saveBtn.addEventListener('click', () => {
-    const rows   = listEl.querySelectorAll('.habit-row');
-    const habits = [];
-    let valid    = true;
-
-    rows.forEach(row => {
-      const name  = row.querySelector('.name-input').value.trim();
-      const emoji = row.querySelector('.emoji-input').value.trim() || '⬜';
-      const id    = row.dataset.id || uid();
-      if (name) habits.push({ id, name, emoji, createdAt: todayStr() });
-      else valid = false;
-    });
-
-    if (!valid || habits.length === 0) {
-      errEl.classList.remove('hidden');
-      return;
-    }
-
-    errEl.classList.add('hidden');
-    setState({ habits });
-    overlay.classList.add('hidden');
-    renderHabits();
-    renderWeekly();
-  });
+function applyTheme(dark) {
+  document.body.classList.toggle('dark-mode', dark);
+  document.getElementById('theme-switcher').textContent = dark ? '☀️ Light Mode' : '🌙 Dark Mode';
+  localStorage.setItem(KEY_THEME, dark ? 'dark' : 'light');
 }
 
-// ── Boot ─────────────────────────────────────────────────────────────────────
+document.getElementById('theme-switcher').addEventListener('click', () => {
+  applyTheme(!document.body.classList.contains('dark-mode'));
+});
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+document.getElementById('clear-data-btn').addEventListener('click', () => {
+  if (!confirm('This will permanently delete all habits, categories, and reminders. Are you sure?')) return;
+  localStorage.removeItem(KEY_HABITS);
+  localStorage.removeItem(KEY_CATEGORIES);
+  localStorage.removeItem(KEY_REMINDERS);
+  renderHabits();
+  renderCategories();
+  renderReminders();
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
 
 (function boot() {
-  const { setupDone } = getState();
+  // Apply saved theme
+  const savedTheme = localStorage.getItem(KEY_THEME);
+  applyTheme(savedTheme === 'dark');
 
-  if (!setupDone) {
-    initSetupModal();
-  } else {
-    document.getElementById('setup-overlay').classList.add('hidden');
-    initApp();
-  }
-
-  initSettingsModal();
+  renderHabits();
+  renderCategories();
+  renderReminders();
+  rescheduleAllReminders();
 })();

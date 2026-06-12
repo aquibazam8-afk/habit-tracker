@@ -8,71 +8,159 @@
 </head>
 <body>
 
-  <!-- ── SETUP MODAL (first run) ── -->
-  <div id="setup-overlay" class="overlay">
-    <div class="modal">
-      <h2>👋 Welcome to Habit Tracker</h2>
-      <p>Tell me which habits you want to track every day.</p>
+  <header>
+    <h1>🎯 Habit Tracker</h1>
+    <button id="theme-switcher" title="Toggle dark/light mode">🌙 Dark Mode</button>
+  </header>
 
-      <div id="habit-input-list">
-        <div class="habit-row">
-          <input class="emoji-input" type="text" placeholder="🏃" maxlength="2" />
-          <input class="name-input" type="text" placeholder="e.g. Morning workout" />
-          <button class="remove-row-btn" title="Remove">✕</button>
+  <main>
+
+    <!-- Overview -->
+    <section class="card" id="overview-section">
+      <h2>📊 Today's Overview</h2>
+      <div class="overview-grid">
+        <div class="overview-item">
+          <span class="overview-value" id="total-habits">0</span>
+          <span class="overview-label">Total Habits</span>
+        </div>
+        <div class="overview-item">
+          <span class="overview-value" id="completed-habits">0</span>
+          <span class="overview-label">Completed Today</span>
+        </div>
+        <div class="overview-item">
+          <span class="overview-value" id="longest-streak">0</span>
+          <span class="overview-label">Longest Streak 🔥</span>
         </div>
       </div>
+    </section>
 
-      <button id="add-row-btn">＋ Add another habit</button>
-      <button id="save-setup-btn">Start Tracking →</button>
-      <p id="setup-error" class="error hidden">Please add at least one habit with a name.</p>
-    </div>
-  </div>
+    <!-- Filter -->
+    <section class="card" id="filter-section">
+      <h2>🔍 Filter Habits</h2>
+      <select id="filter-category">
+        <option value="all">All Categories</option>
+        <option value="Health">Health</option>
+        <option value="Productivity">Productivity</option>
+        <option value="Learning">Learning</option>
+      </select>
+    </section>
 
-  <!-- ── MAIN APP ── -->
-  <div id="app" class="hidden">
+    <!-- Habit List -->
+    <section class="card" id="habit-list-section">
+      <h2>📋 My Habits</h2>
+      <ul id="habit-list"></ul>
+      <p id="no-habits-msg" class="muted">No habits yet. Add one below!</p>
+    </section>
 
-    <header>
-      <div>
-        <h1>🎯 Habit Tracker</h1>
-        <p id="today-label"></p>
+    <!-- Add Habit -->
+    <section class="card" id="add-habit-section">
+      <h2>➕ Add New Habit</h2>
+      <div class="form-group">
+        <input type="text" id="habit-name" placeholder="Habit name (e.g. Morning run)" maxlength="60" />
       </div>
-      <button id="settings-btn" title="Manage habits">⚙ Habits</button>
-    </header>
+      <div class="form-row">
+        <select id="habit-category">
+          <option value="Health">Health</option>
+          <option value="Productivity">Productivity</option>
+          <option value="Learning">Learning</option>
+        </select>
+        <select id="habit-frequency">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+      <button id="add-habit-btn" class="btn-primary">Add Habit</button>
+      <p id="add-error" class="error hidden">Please enter a habit name.</p>
+    </section>
 
-    <main>
-      <section id="progress-bar-section">
-        <div id="progress-bar-wrap">
-          <div id="progress-bar-fill"></div>
+    <!-- Edit Habit (hidden until editing) -->
+    <section class="card hidden" id="edit-habit-section">
+      <h2>✏️ Edit Habit</h2>
+      <div class="form-group">
+        <input type="text" id="edit-habit-name" placeholder="Habit name" maxlength="60" />
+      </div>
+      <div class="form-row">
+        <select id="edit-habit-category">
+          <option value="Health">Health</option>
+          <option value="Productivity">Productivity</option>
+          <option value="Learning">Learning</option>
+        </select>
+        <select id="edit-habit-frequency">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <button id="save-edit-btn" class="btn-primary">Save Changes</button>
+        <button id="cancel-edit-btn" class="btn-secondary">Cancel</button>
+      </div>
+    </section>
+
+    <!-- Category Management -->
+    <section class="card" id="category-section">
+      <h2>🏷️ Manage Categories</h2>
+      <div class="form-row">
+        <input type="text" id="new-category-input" placeholder="New category name" maxlength="30" />
+        <button id="add-category-btn" class="btn-primary">Add</button>
+      </div>
+      <div id="category-list"></div>
+    </section>
+
+    <!-- Reminders -->
+    <section class="card" id="reminders-section">
+      <h2>⏰ Reminders</h2>
+      <div class="form-group">
+        <select id="reminder-habit">
+          <option value="">-- Select a habit --</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <input type="time" id="reminder-time" />
+        <select id="reminder-frequency">
+          <option value="once">Once</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+      <button id="set-reminder-btn" class="btn-primary">Set Reminder</button>
+      <p id="reminder-permission-msg" class="muted hidden">Enable browser notifications to use reminders.</p>
+      <ul id="reminder-list"></ul>
+    </section>
+
+    <!-- Analytics -->
+    <section class="card" id="analytics-section">
+      <h2>📈 Analytics</h2>
+      <div class="analytics-grid">
+        <div class="analytics-item">
+          <span class="analytics-label">Health</span>
+          <span class="analytics-value" id="health-completed">0</span>
+          <span class="analytics-label">completed</span>
         </div>
-        <p id="progress-label"></p>
-      </section>
-
-      <section id="habits-section">
-        <ul id="habits-list"></ul>
-      </section>
-
-      <section id="weekly-section">
-        <h3>Last 7 Days</h3>
-        <div id="weekly-grid"></div>
-      </section>
-    </main>
-  </div>
-
-  <!-- ── SETTINGS MODAL ── -->
-  <div id="settings-overlay" class="overlay hidden">
-    <div class="modal">
-      <h2>⚙ Manage Habits</h2>
-
-      <div id="settings-habit-list"></div>
-
-      <button id="settings-add-row-btn">＋ Add habit</button>
-      <div class="modal-footer">
-        <button id="settings-cancel-btn" class="secondary">Cancel</button>
-        <button id="settings-save-btn">Save Changes</button>
+        <div class="analytics-item">
+          <span class="analytics-label">Productivity</span>
+          <span class="analytics-value" id="productivity-completed">0</span>
+          <span class="analytics-label">completed</span>
+        </div>
+        <div class="analytics-item">
+          <span class="analytics-label">Learning</span>
+          <span class="analytics-value" id="learning-completed">0</span>
+          <span class="analytics-label">completed</span>
+        </div>
       </div>
-      <p id="settings-error" class="error hidden">Each habit needs a name.</p>
-    </div>
-  </div>
+      <div id="extra-analytics"></div>
+    </section>
+
+    <!-- Settings -->
+    <section class="card" id="settings-section">
+      <h2>⚙️ Settings</h2>
+      <button id="clear-data-btn" class="btn-danger">🗑️ Clear All Data</button>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Built with ❤️ · Data stored locally in your browser</p>
+  </footer>
 
   <script src="app.js"></script>
 </body>
