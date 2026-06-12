@@ -1,53 +1,67 @@
 # 🎯 Habit Tracker
 
-A minimal, no-dependency habit tracker that runs entirely in the browser. No accounts, no backend — your data stays in your browser's localStorage.
+A minimal, no-dependency daily habit tracker that runs entirely in the browser. No accounts, no backend — your data stays locally in your browser.
 
-![dark theme screenshot placeholder](https://via.placeholder.com/660x360/0f1117/6c63ff?text=Habit+Tracker)
+## 🌐 Live Demo
+
+**[➡️ Try it now: aquibazam8-afk.github.io/habit-tracker](https://aquibazam8-afk.github.io/habit-tracker/)**
+
+No install. No sign-up. Just open and start tracking.
+
+---
 
 ## Features
 
-- **First-run setup** — asks you which habits to track (you own the list)
-- **Daily check-in** — tap a habit to mark it done
-- **Streak tracking** — see your current streak per habit
-- **7-day history grid** — visual overview of the last week
-- **Manage habits** — add, rename, or remove habits anytime via the ⚙ button
-- **Zero dependencies** — plain HTML, CSS, and JavaScript; works offline
+- **Light / Dark mode** — toggle and persists across sessions
+- **Custom categories** — Health, Productivity, Learning, or add your own
+- **Daily & weekly habits** — auto-resets at midnight (daily) or Sunday (weekly)
+- **25% progress increments** — click to add progress, 4 clicks = done
+- **Streak tracking** — consecutive-day streaks with milestone badges (5 / 10 / 20 / 50 / 100 days 🏆)
+- **Overview panel** — total habits, completed today, longest streak at a glance
+- **Analytics** — completion count broken down by category
+- **Browser reminders** — set once / daily / weekly notifications via Web Notifications API
+- **Edit & delete** — modify or remove any habit; reminders auto-clean up
+- **Zero dependencies** — plain HTML, CSS, and JavaScript; works fully offline
 - **Persistent** — data saved in `localStorage`; survives page refreshes
 
 ## Quick Start
 
-1. Clone or download this repo:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/habit-tracker.git
-   cd habit-tracker
-   ```
+### Option A — Use online (recommended)
+Click the live demo link above. Done.
 
-2. Open `index.html` in any browser — that's it. No install, no build step.
+### Option B — Run locally
+```bash
+git clone https://github.com/aquibazam8-afk/habit-tracker.git
+cd habit-tracker
+# Open index.html in any browser — no build step needed
+start index.html        # Windows
+open index.html         # macOS
+xdg-open index.html     # Linux
+```
 
-   On Windows you can double-click `index.html`, or:
-   ```bash
-   start index.html
-   ```
-
-## Usage
+## How to Use
 
 | Action | How |
 |--------|-----|
-| Set up habits | First launch shows a setup screen — add as many habits as you want with an optional emoji |
-| Mark a habit done | Click/tap the habit row |
-| View streaks | Streak count appears below each habit name |
-| See last 7 days | Scroll to the "Last 7 Days" grid at the bottom |
-| Add / rename / delete habits | Click **⚙ Habits** in the top right |
+| Add a habit | Fill in the **Add New Habit** form and click Add |
+| Mark progress | Click the progress bar or the **+25%** button — 4 clicks = complete |
+| View streaks | Streak badge appears on each habit card |
+| Filter by category | Use the **Filter Habits** dropdown |
+| Edit a habit | Click **Edit** on any habit card |
+| Set a reminder | Choose a habit, time, and frequency in the **Reminders** section |
+| Add custom category | Type in **Manage Categories** and click Add |
+| Toggle dark mode | Click 🌙 / ☀️ in the top-right corner |
+| Clear all data | **Settings → Clear All Data** |
 
 ## Customisation
 
-All styles live in `style.css` and use CSS variables at the top of the file.  Change colours, radius, or font there — no JavaScript knowledge needed.
+All colours are CSS variables in `style.css`:
 
 ```css
 :root {
-  --accent: #6c63ff;   /* purple → change to your preferred colour */
-  --green:  #22c55e;   /* done/streak colour */
-  --bg:     #0f1117;   /* page background */
+  --accent:  #5cb85c;   /* primary green — change to any colour */
+  --danger:  #d9534f;   /* delete / warning red */
+  --bg:      #f4f4f4;   /* page background (light mode) */
 }
 ```
 
@@ -55,15 +69,15 @@ All styles live in `style.css` and use CSS variables at the top of the file.  Ch
 
 ```
 habit-tracker/
-├── index.html   # markup + modal structure
-├── style.css    # dark theme, responsive layout
-├── app.js       # all logic (setup, toggle, streaks, weekly grid)
+├── index.html   # all sections and modals
+├── style.css    # light + dark theme, responsive layout, animations
+├── app.js       # habits, streaks, categories, reminders, analytics
 └── README.md
 ```
 
 ## Contributing
 
-PRs welcome. Keep it dependency-free and vanilla — the point is that anyone can open the file and use it immediately.
+PRs welcome. Keep it dependency-free and vanilla — the whole point is that anyone can open the file and use it immediately.
 
 ## License
 
